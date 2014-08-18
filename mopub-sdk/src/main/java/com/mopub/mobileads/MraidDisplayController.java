@@ -41,7 +41,6 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.ActivityInfo;
-import android.graphics.Color;
 import android.graphics.Rect;
 import android.graphics.drawable.StateListDrawable;
 import android.media.MediaScannerConnection;
@@ -65,25 +64,39 @@ import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.Toast;
+
+import com.mopub.common.util.Dips;
+import com.mopub.common.util.Streams;
 import com.mopub.mobileads.MraidView.ExpansionStyle;
 import com.mopub.mobileads.MraidView.NativeCloseButtonStyle;
 import com.mopub.mobileads.MraidView.PlacementType;
 import com.mopub.mobileads.MraidView.ViewState;
 import com.mopub.mobileads.factories.HttpClientFactory;
 import com.mopub.mobileads.util.HttpResponses;
+import com.mopub.mobileads.util.Interstitials;
 import com.mopub.mobileads.util.Mraids;
-import com.mopub.mobileads.util.Streams;
+
 import org.apache.http.Header;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.URI;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
+import static android.graphics.Color.TRANSPARENT;
+import static com.mopub.common.util.Drawables.INTERSTITIAL_CLOSE_BUTTON_NORMAL;
+import static com.mopub.common.util.Drawables.INTERSTITIAL_CLOSE_BUTTON_PRESSED;
+import static com.mopub.common.util.ResponseHeader.LOCATION;
 import static com.mopub.mobileads.MraidCommandFactory.MraidJavascriptCommand.CREATE_CALENDAR_EVENT;
 import static com.mopub.mobileads.MraidCommandFactory.MraidJavascriptCommand.EXPAND;
 import static com.mopub.mobileads.MraidCommandFactory.MraidJavascriptCommand.GET_CURRENT_POSITION;
@@ -93,15 +106,12 @@ import static com.mopub.mobileads.MraidCommandFactory.MraidJavascriptCommand.GET
 import static com.mopub.mobileads.MraidCommandFactory.MraidJavascriptCommand.STORE_PICTURE;
 import static com.mopub.mobileads.MraidCommandStorePicture.MIME_TYPE_HEADER;
 import static com.mopub.mobileads.MraidView.BaseMraidListener;
-import static com.mopub.mobileads.resource.Drawables.INTERSTITIAL_CLOSE_BUTTON_NORMAL;
-import static com.mopub.mobileads.resource.Drawables.INTERSTITIAL_CLOSE_BUTTON_PRESSED;
 import static com.mopub.mobileads.util.Mraids.ANDROID_CALENDAR_CONTENT_TYPE;
 import static com.mopub.mobileads.util.Mraids.isCalendarAvailable;
 import static com.mopub.mobileads.util.Mraids.isInlineVideoAvailable;
 import static com.mopub.mobileads.util.Mraids.isSmsAvailable;
 import static com.mopub.mobileads.util.Mraids.isStorePictureSupported;
 import static com.mopub.mobileads.util.Mraids.isTelAvailable;
-import static com.mopub.mobileads.util.ResponseHeader.LOCATION;
 
 class MraidDisplayController extends MraidAbstractController {
     private static final String LOGTAG = "MraidDisplayController";
@@ -161,6 +171,7 @@ class MraidDisplayController extends MraidAbstractController {
     private FrameLayout mPlaceholderView;
     private FrameLayout mAdContainerLayout;
     private RelativeLayout mExpansionLayout;
+    private final OnClickListener mCloseOnClickListener;
 
     MraidDisplayController(MraidView view, MraidView.ExpansionStyle expStyle,
             MraidView.NativeCloseButtonStyle buttonStyle) {
@@ -173,11 +184,18 @@ class MraidDisplayController extends MraidAbstractController {
                 ((Activity) context).getRequestedOrientation() :
                 ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED;
 
+        initialize();
+
+        mCloseOnClickListener = new OnClickListener() {
+            @Override
+            public void onClick(final View view) {
+                MraidDisplayController.this.close();
+            }
+        };
+
         mAdContainerLayout = createAdContainerLayout();
         mExpansionLayout = createExpansionLayout();
         mPlaceholderView = createPlaceholderView();
-
-        initialize();
     }
 
     private void initialize() {
@@ -267,6 +285,7 @@ class MraidDisplayController extends MraidAbstractController {
     private void resetViewToDefaultState() {
         setNativeCloseButtonEnabled(false);
         mAdContainerLayout.removeAllViewsInLayout();
+
         mExpansionLayout.removeAllViewsInLayout();
         mRootView.removeView(mExpansionLayout);
 
@@ -424,7 +443,7 @@ class MraidDisplayController extends MraidAbstractController {
     }
 
     protected void showVideo(String videoUrl) {
-        MraidVideoPlayerActivity.startMraid(getContext(), videoUrl);
+        MraidVideoPlayerActivity.startMraid(getContext(), videoUrl, getMraidView().getAdConfiguration());
     }
 
     protected void getCurrentPosition(){
@@ -673,7 +692,7 @@ class MraidDisplayController extends MraidAbstractController {
         if (expandHeight < closeButtonSize) expandHeight = closeButtonSize;
 
         View dimmingView = new View(getContext());
-        dimmingView.setBackgroundColor(Color.TRANSPARENT);
+        dimmingView.setBackgroundColor(TRANSPARENT);
         dimmingView.setOnTouchListener(new OnTouchListener() {
             public boolean onTouch(View v, MotionEvent event) {
                 return true;
@@ -685,6 +704,8 @@ class MraidDisplayController extends MraidAbstractController {
 
         mAdContainerLayout.addView(expansionContentView, new RelativeLayout.LayoutParams(
                 RelativeLayout.LayoutParams.FILL_PARENT, RelativeLayout.LayoutParams.FILL_PARENT));
+
+        addCloseEventRegion(mAdContainerLayout);
 
         RelativeLayout.LayoutParams lp = new RelativeLayout.LayoutParams(expandWidth, expandHeight);
         lp.addRule(RelativeLayout.CENTER_IN_PARENT);
@@ -706,7 +727,9 @@ class MraidDisplayController extends MraidAbstractController {
     }
 
     protected void setNativeCloseButtonEnabled(boolean enabled) {
-        if (mRootView == null) return;
+        if (mRootView == null) {
+            return;
+        }
 
         if (enabled) {
             if (mCloseButton == null) {
@@ -723,9 +746,9 @@ class MraidDisplayController extends MraidAbstractController {
                 });
             }
 
-            int buttonSize = (int) (CLOSE_BUTTON_SIZE_DP * mDensity + 0.5f);
+            final int closeButtonSize = Dips.dipsToIntPixels(CLOSE_BUTTON_SIZE_DP, getContext());
             FrameLayout.LayoutParams buttonLayout = new FrameLayout.LayoutParams(
-                    buttonSize, buttonSize, Gravity.RIGHT);
+                    closeButtonSize, closeButtonSize, Gravity.RIGHT);
             mAdContainerLayout.addView(mCloseButton, buttonLayout);
         } else {
             mAdContainerLayout.removeView(mCloseButton);
@@ -749,6 +772,13 @@ class MraidDisplayController extends MraidAbstractController {
 
     FrameLayout createAdContainerLayout() {
         return new FrameLayout(getContext());
+    }
+
+    void addCloseEventRegion(final FrameLayout frameLayout) {
+        final int buttonSizePixels = Dips.dipsToIntPixels(CLOSE_BUTTON_SIZE_DP, getContext());
+        final FrameLayout.LayoutParams layoutParams =
+                new FrameLayout.LayoutParams(buttonSizePixels, buttonSizePixels, Gravity.TOP | Gravity.RIGHT);
+        Interstitials.addCloseEventRegion(frameLayout, layoutParams, mCloseOnClickListener);
     }
 
     RelativeLayout createExpansionLayout() {
@@ -866,5 +896,11 @@ class MraidDisplayController extends MraidAbstractController {
             mContext.unregisterReceiver(this);
             mContext = null;
         }
+    }
+
+    // testing
+    @Deprecated
+    public OnClickListener getCloseOnClickListener() {
+        return mCloseOnClickListener;
     }
 }

@@ -33,11 +33,8 @@
 package com.mopub.mobileads;
 
 import android.app.Activity;
-import android.content.Intent;
-import android.content.IntentFilter;
 import android.graphics.drawable.StateListDrawable;
 import android.os.Bundle;
-import android.support.v4.content.LocalBroadcastManager;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.Window;
@@ -45,20 +42,18 @@ import android.view.WindowManager;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
-import com.mopub.mobileads.util.Dips;
+
+import com.mopub.common.util.Dips;
+import com.mopub.mobileads.util.Interstitials;
 
 import static android.view.View.INVISIBLE;
 import static android.view.View.VISIBLE;
+import static com.mopub.common.util.Drawables.INTERSTITIAL_CLOSE_BUTTON_NORMAL;
+import static com.mopub.common.util.Drawables.INTERSTITIAL_CLOSE_BUTTON_PRESSED;
 import static com.mopub.mobileads.AdFetcher.AD_CONFIGURATION_KEY;
-import static com.mopub.mobileads.resource.Drawables.INTERSTITIAL_CLOSE_BUTTON_NORMAL;
-import static com.mopub.mobileads.resource.Drawables.INTERSTITIAL_CLOSE_BUTTON_PRESSED;
 
 abstract class BaseInterstitialActivity extends Activity {
-    public static final String ACTION_INTERSTITIAL_FAIL = "com.mopub.action.interstitial.fail";
-    public static final String ACTION_INTERSTITIAL_SHOW = "com.mopub.action.interstitial.show";
-    public static final String ACTION_INTERSTITIAL_DISMISS = "com.mopub.action.interstitial.dismiss";
-    public static final String ACTION_INTERSTITIAL_CLICK = "com.mopub.action.interstitial.click";
-    public static final IntentFilter HTML_INTERSTITIAL_INTENT_FILTER = createHtmlInterstitialIntentFilter();
+    private OnClickListener mCloseOnClickListener;
 
     enum JavaScriptWebViewCallbacks {
         WEB_VIEW_DID_APPEAR("javascript:webviewDidAppear();"),
@@ -74,13 +69,14 @@ abstract class BaseInterstitialActivity extends Activity {
         }
     }
 
-    private static final float CLOSE_BUTTON_SIZE = 50f;
+    private static final float CLOSE_BUTTON_SIZE_DP = 50f;
     private static final float CLOSE_BUTTON_PADDING = 8f;
 
     private ImageView mCloseButton;
     private RelativeLayout mLayout;
     private int mButtonSize;
     private int mButtonPadding;
+    private long mBroadcastIdentifier;
 
     public abstract View getAdView();
 
@@ -91,8 +87,14 @@ abstract class BaseInterstitialActivity extends Activity {
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
 
-        mButtonSize = Dips.asIntPixels(CLOSE_BUTTON_SIZE, this);
+        mButtonSize = Dips.asIntPixels(CLOSE_BUTTON_SIZE_DP, this);
         mButtonPadding = Dips.asIntPixels(CLOSE_BUTTON_PADDING, this);
+        mCloseOnClickListener = new OnClickListener() {
+            @Override
+            public void onClick(final View view) {
+                finish();
+            }
+        };
 
         mLayout = new RelativeLayout(this);
         final RelativeLayout.LayoutParams adViewLayout = new RelativeLayout.LayoutParams(
@@ -100,6 +102,11 @@ abstract class BaseInterstitialActivity extends Activity {
         adViewLayout.addRule(RelativeLayout.CENTER_IN_PARENT);
         mLayout.addView(getAdView(), adViewLayout);
         setContentView(mLayout);
+
+        final AdConfiguration adConfiguration = getAdConfiguration();
+        if (adConfiguration != null) {
+            mBroadcastIdentifier = adConfiguration.getBroadcastIdentifier();
+        }
 
         createInterstitialCloseButton();
     }
@@ -110,17 +117,16 @@ abstract class BaseInterstitialActivity extends Activity {
         super.onDestroy();
     }
 
+    long getBroadcastIdentifier() {
+        return mBroadcastIdentifier;
+    }
+
     protected void showInterstitialCloseButton() {
         mCloseButton.setVisibility(VISIBLE);
     }
 
     protected void hideInterstitialCloseButton() {
         mCloseButton.setVisibility(INVISIBLE);
-    }
-
-    protected void broadcastInterstitialAction(String action) {
-        Intent intent = new Intent(action);
-        LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
     }
 
     protected AdConfiguration getAdConfiguration() {
@@ -133,13 +139,12 @@ abstract class BaseInterstitialActivity extends Activity {
         return adConfiguration;
     }
 
-    private static IntentFilter createHtmlInterstitialIntentFilter() {
-        IntentFilter intentFilter = new IntentFilter();
-        intentFilter.addAction(ACTION_INTERSTITIAL_FAIL);
-        intentFilter.addAction(ACTION_INTERSTITIAL_SHOW);
-        intentFilter.addAction(ACTION_INTERSTITIAL_DISMISS);
-        intentFilter.addAction(ACTION_INTERSTITIAL_CLICK);
-        return intentFilter;
+    void addCloseEventRegion() {
+        final int buttonSizePixels = Dips.dipsToIntPixels(CLOSE_BUTTON_SIZE_DP, this);
+        final RelativeLayout.LayoutParams layoutParams = new RelativeLayout.LayoutParams(buttonSizePixels, buttonSizePixels);
+        layoutParams.addRule(RelativeLayout.ALIGN_PARENT_RIGHT);
+        layoutParams.addRule(RelativeLayout.ALIGN_PARENT_TOP);
+        Interstitials.addCloseEventRegion(mLayout, layoutParams, mCloseOnClickListener);
     }
 
     private void createInterstitialCloseButton() {

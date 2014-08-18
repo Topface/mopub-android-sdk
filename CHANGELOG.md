@@ -1,3 +1,56 @@
+## Version 2.3 (Jul 17, 2014)
+
+  - **Improved impression tracking for Native Ads** Impression tracking for native ads is now more accurate and more efficient.
+  - **Streamlined Maven Build and Dependencies** MoPub's Android SDK now depends on the Android v4 Support Library shipped with the Android Build tools. The MoPub Sample App also depends on Google Play Services to use the Android Advertising ID. We recommend building against Play Services in your app as well. For integration instructions, see the [wiki](https://github.com/mopub/mopub-android-sdk/wiki/Getting-Started).
+  - **Removed AdMob Custom Events and JAR** AdMob's SDK is deprecated by Google and the APIs have been moved to Google Play Services. Existing AdMob adunits will now invoke the appropriate Google Play Services custom event. Developers must update their integration to use the Google Play Services custom events located in the extras folder by August 1.
+  - **Updated Third-Party Network Compatibility** MoPub's provided Custom Events (included in the extras/ folder) are now compatible with the latest SDK releases from Millennial Media (5.3.0), Vungle (3.1.0), InMobi (4.4.1) and Google Play Services (5.0.77).
+  - Fixed intermittent NullPointerException in MoPubNative#requestNativeAd; fixes [Github issue #97] (https://github.com/mopub/mopub-android-sdk/issues/97)
+  - Fixed an issue where MRAID interstitials could be not be closed.
+
+## Version 2.2 (Jun 19, 2014)
+
+  - **Native ads mediation** release; integration instructions and documentation are available on the [GitHub wiki](https://github.com/mopub/mopub-android-sdk/wiki/Integrating-Native-Third-Party-Ad-Networks). Added custom event native implementations to the native extras directory of the SDK (`/extras/src/com/mopub/nativeads`), with initial support for the following networks:
+  	- Facebook Audience Network (`FacebookNative.java`)
+  	- InMobi Native Ads (`InMobiNative.java`)
+  - **Native ads content filtering**: Added the ability to specify which native ad elements you want to receive from the MoPub Marketplace to optimize bandwidth use and download only required assets, via `RequestParameters.Builder#desiredAssets(…)`. This feature only works for the six standard Marketplace assets, found in `RequestParameters.NativeAdAsset`. Any additional elements added in direct sold ads will always be sent down in the extras.
+  - Added star rating information to the `NativeResponse` object, via `NativeResponse#getStarRating()`. This method returns a `Double` corresponding to an app's rating on a 5-star scale.
+  - VAST video quartile and completion trackers now always include the user-agent
+  - Ensured that banners never autorefresh until they have been loaded at least once
+
+## Version 2.1 (May 15, 2014)
+
+  - Added custom events for Facebook ads. `FacebookBanner` and `FacebookInterstitial` can be found in the extras directory of the SDK (`/extras/src/com/mopub/mobileads`). For more information, please see the [help page for Facebook custom events](http://help.mopub.com/customer/portal/articles/1552301-how-to-integrate-facebook-audience-network-using-custom-events).
+  - Significant improvements to video ads
+    - Added overlay including a "Learn More" button, video length, and time left until the video may be skipped
+    - Added support for companion banners (shown upon video completion)
+  - Added Logcat warnings (and Toasts for debug builds) in cases where all necessary Activity permissions haven't been added to the `AndroidManifest`
+
+## Version 2.0 (Apr 22, 2014)
+
+  - **Native Ads** public release; integration instructions and documentation available on the [GitHub wiki](https://github.com/mopub/mopub-android-sdk/wiki/Native-Ads-Integration)
+  - Changed minimum supported Android version to Froyo (Android 2.2, API level 8)
+  - Added support for Google Play Services advertising identifier
+  - Renamed the `com.mopub.mobileads.MraidBrowser` Activity to `com.mopub.common.MoPubBrowser`.
+      - **Important Note:** This change requires a modification to the `AndroidManifest`. The updated set of requisite activity permissions are as follows:
+      
+      	```      	      	
+    <activity android:name="com.mopub.common.MoPubBrowser"
+				android:configChanges="keyboardHidden|orientation"/>
+    <activity android:name="com.mopub.mobileads.MoPubActivity"
+                android:configChanges="keyboardHidden|orientation"/>
+    <activity android:name="com.mopub.mobileads.MraidActivity"
+                android:configChanges="keyboardHidden|orientation"/>
+	<activity android:name="com.mopub.mobileads.MraidVideoPlayerActivity"
+                android:configChanges="keyboardHidden|orientation"/>
+		```  
+  - Upgraded the bundled `android-support-v4` library to r19.1.
+      - **Note for Maven users:** Newer versions of the `android-support-v4` artifact are unavailable on Maven central, so we have included a small script to update the version in your local artifact repository. Please navigate to the `mopub-sdk` directory, and run `scripts/mavenize_support_library`.
+      
+###### Version 2.0.1 (Apr 30, 2014)
+
+  - Fixed cases where VAST Video Interstitials were failing to fire `InterstitialAdListener` callbacks; fixes [GitHub issue #78](https://github.com/mopub/mopub-android-sdk/issues/78)
+  - Simplified click tracking logic for HTML ads
+
 ## Version 1.17 (Nov 20, 2013)
 
   - Support for VAST 2.0 video playback via MoPub Marketplace
@@ -12,6 +65,18 @@
   - Enabled deeplinking via custom URIs in ad creatives
   - All `WebView`s are removed from their parents before `destroy()`; fixes [GitHub issue #38](https://github.com/mopub/mopub-android-sdk/issues/38)
   - Removed previously-deprecated `HTML5AdView`
+  
+### Version 1.17.3 (Mar 19, 2014)
+
+  - Added safeguards to prevent two different `MoPubInterstitial` objects from listening in on one other's lifecycle callbacks
+  - Disabled Javascript loading into `destroy()`ed `WebView`s; fixes [GitHub issue #62](https://github.com/mopub/mopub-android-sdk/issues/62)
+  - Fixed an `IllegalArgumentException` resulting from VAST videos with malformed redirect tags
+  - MRAID ads that utilize `mraid.open()` now correctly record a click event
+  - Added missing `FLAG_ACTIVITY_NEW_TASK` to `VastVideoView`'s intent creation; fixes part of [GitHub issue #56](https://github.com/mopub/mopub-android-sdk/issues/56)
+  
+###### Version 1.17.3.1 (Mar 24, 2014)
+
+  - Restricted use of methods and fields that require API 4+ (`WebView#removeJavascriptInterface` and `ConnectivityManager`'s connection types)
   
 ### Version 1.17.2 (Feb 20, 2014)
 

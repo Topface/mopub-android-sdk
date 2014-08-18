@@ -12,7 +12,7 @@ The MoPub SDK is distributed as source code that you can include in your applica
 
 - **[MoPub Android Full SDK.zip](http://bit.ly/YUdU9v)**
 
-  Includes everything you need to serve HTML and MRAID MoPub advertisiments *and* built-in support for two major third party ad networks - [Google AdMob](http://www.google.com/ads/admob/) and [Millennial Media](http://www.millennialmedia.com/) - including the required third party binaries.
+  Includes everything you need to serve HTML and MRAID MoPub advertisiments *and* built-in support for Millennial Media third party ad network - [Millennial Media](http://www.millennialmedia.com/) - including the required third party binaries.
 
 - **[MoPub Android Base SDK.zip](http://bit.ly/YUdWhH)**
 
@@ -27,15 +27,17 @@ Integration instructions are available on the [wiki](https://github.com/mopub/mo
 
 Please view the [changelog](https://github.com/mopub/mopub-android-sdk/blob/master/CHANGELOG.md) for details.
 
-  - Updated InMobi custom events
-  - Bug fixes
+  - **Improved impression tracking for Native Ads** Impression tracking for native ads is now more accurate and more efficient.
 
-### Changes to InMobi Custom Event Integrations
-**Important**: As of version 1.17.2.0, the InMobi custom events packaged with the MoPub SDK only support InMobi version 4.0.3 and up. Follow the instructions [here](https://www.inmobi.com/support/integration/23817448/22051163/android-sdk-integration-guide/) to integrate InMobi version 4.0.3 and up. If you would like to continue to use a prior version of the InMobi SDK, do not update the custom event files and follow the instructions [here](https://www.inmobi.com/support/art/23806682/22095493/mopub-adaptor-android-sdk-integration-guide/) to integrate.
+  - **Streamlined Maven Build and Dependencies** MoPub's Android SDK now depends on the Android v4 Support Library shipped with the Android Build tools. The MoPub Sample App also depends on Google Play Services to use the Android Advertising ID. We recommend building against Play Services in your app as well. For integration instructions, see the [wiki](https://github.com/mopub/mopub-android-sdk/wiki/Getting-Started).
+
+  - **Updated Third-Party Network Compatibility** MoPub's provided Custom Events (included in the extras/ folder) are now compatible with the latest SDK releases from Millennial Media (5.3.0), Vungle (3.1.0), and InMobi (4.4.1), Google Play Services (5.0.77).
+
+  - Bug fixes
 
 ## Requirements
 
-Android 1.6 and up
+Android 2.2 and up
 
 ## License
 

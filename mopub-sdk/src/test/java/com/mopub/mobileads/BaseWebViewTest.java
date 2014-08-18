@@ -44,9 +44,8 @@ import org.junit.runner.RunWith;
 import org.robolectric.Robolectric;
 import org.robolectric.shadows.ShadowWebView;
 
-import static com.mopub.mobileads.util.VersionCode.ECLAIR_MR1;
-import static com.mopub.mobileads.util.VersionCode.FROYO;
-import static com.mopub.mobileads.util.VersionCode.JELLY_BEAN_MR2;
+import static com.mopub.common.util.VersionCode.JELLY_BEAN_MR1;
+import static com.mopub.common.util.VersionCode.JELLY_BEAN_MR2;
 import static org.fest.assertions.api.Assertions.assertThat;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
@@ -55,7 +54,6 @@ import static org.robolectric.Robolectric.shadowOf;
 
 @RunWith(SdkTestRunner.class)
 public class BaseWebViewTest {
-
     private Activity context;
     private BaseWebView subject;
 
@@ -65,20 +63,8 @@ public class BaseWebViewTest {
     }
 
     @Test
-    public void beforeFroyo_shouldDisablePluginsByDefault() throws Exception {
-        Robolectric.Reflection.setFinalStaticField(Build.VERSION.class, "SDK_INT", ECLAIR_MR1.getApiLevel());
-        subject = new BaseWebView(context);
-
-        WebSettings webSettings = subject.getSettings();
-        assertThat(webSettings.getPluginsEnabled()).isFalse();
-
-        subject.enablePlugins(true);
-        assertThat(webSettings.getPluginsEnabled()).isTrue();
-    }
-
-    @Test
-    public void froyoAndAfter_shouldDisablePluginsByDefault() throws Exception {
-        Robolectric.Reflection.setFinalStaticField(Build.VERSION.class, "SDK_INT", FROYO.getApiLevel());
+    public void jellyBeanMr1AndBefore_shouldDisablePluginsByDefault() throws Exception {
+        Robolectric.Reflection.setFinalStaticField(Build.VERSION.class, "SDK_INT", JELLY_BEAN_MR1.getApiLevel());
         subject = new BaseWebView(context);
 
         WebSettings webSettings = subject.getSettings();
@@ -109,5 +95,16 @@ public class BaseWebViewTest {
 
         verify(parent).removeView(eq(subject));
         assertThat(shadow.wasDestroyCalled()).isTrue();
+    }
+
+    @Test
+    public void destroy_shouldSetTheCorrectStateVariable() {
+        subject = new BaseWebView(context);
+
+        assertThat(subject.mIsDestroyed).isFalse();
+
+        subject.destroy();
+
+        assertThat(subject.mIsDestroyed).isTrue();
     }
 }

@@ -42,19 +42,19 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import static com.mopub.mobileads.AdTypeTranslator.CustomEventType.ADMOB_BANNER;
+import static com.mopub.mobileads.AdTypeTranslator.CustomEventType.GOOGLE_PLAY_SERVICES_BANNER;
 import static com.mopub.mobileads.AdTypeTranslator.CustomEventType.HTML_BANNER;
 import static com.mopub.mobileads.AdTypeTranslator.CustomEventType.HTML_INTERSTITIAL;
 import static com.mopub.mobileads.AdTypeTranslator.CustomEventType.MRAID_BANNER;
 import static com.mopub.mobileads.AdTypeTranslator.CustomEventType.MRAID_INTERSTITIAL;
-import static com.mopub.mobileads.util.ResponseHeader.AD_TYPE;
-import static com.mopub.mobileads.util.ResponseHeader.CLICKTHROUGH_URL;
-import static com.mopub.mobileads.util.ResponseHeader.CUSTOM_EVENT_DATA;
-import static com.mopub.mobileads.util.ResponseHeader.CUSTOM_EVENT_NAME;
-import static com.mopub.mobileads.util.ResponseHeader.CUSTOM_SELECTOR;
-import static com.mopub.mobileads.util.ResponseHeader.NATIVE_PARAMS;
-import static com.mopub.mobileads.util.ResponseHeader.REDIRECT_URL;
-import static com.mopub.mobileads.util.ResponseHeader.SCROLLABLE;
+import static com.mopub.common.util.ResponseHeader.AD_TYPE;
+import static com.mopub.common.util.ResponseHeader.CLICKTHROUGH_URL;
+import static com.mopub.common.util.ResponseHeader.CUSTOM_EVENT_DATA;
+import static com.mopub.common.util.ResponseHeader.CUSTOM_EVENT_NAME;
+import static com.mopub.common.util.ResponseHeader.CUSTOM_SELECTOR;
+import static com.mopub.common.util.ResponseHeader.NATIVE_PARAMS;
+import static com.mopub.common.util.ResponseHeader.REDIRECT_URL;
+import static com.mopub.common.util.ResponseHeader.SCROLLABLE;
 import static org.fest.assertions.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.stub;
@@ -137,7 +137,7 @@ public class AdLoadTaskTest {
         response.addHeader(NATIVE_PARAMS.getKey(), expectedNativeParams);
 
         AdLoadTask.CustomEventAdLoadTask customEventTask = (AdLoadTask.CustomEventAdLoadTask) AdLoadTask.fromHttpResponse(response, adViewController);
-        assertThat(customEventTask.getParamsMap().get(CUSTOM_EVENT_NAME.getKey())).isEqualTo(ADMOB_BANNER.toString());
+        assertThat(customEventTask.getParamsMap().get(CUSTOM_EVENT_NAME.getKey())).isEqualTo(GOOGLE_PLAY_SERVICES_BANNER.toString());
 
         String actualNativeParams = customEventTask.getParamsMap().get(CUSTOM_EVENT_DATA.getKey());
         JsonUtils.assertJsonStringMapsEqual(actualNativeParams, expectedNativeParams);

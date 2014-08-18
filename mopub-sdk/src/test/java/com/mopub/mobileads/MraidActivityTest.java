@@ -32,15 +32,23 @@
 
 package com.mopub.mobileads;
 
+import android.app.Activity;
 import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
+import android.graphics.Color;
 import android.os.Build;
 import android.view.View;
 import android.view.WindowManager;
 import android.webkit.WebViewClient;
+import android.widget.Button;
 import android.widget.ImageButton;
+import android.widget.RelativeLayout;
+
+import com.mopub.common.util.Dips;
 import com.mopub.mobileads.test.support.SdkTestRunner;
 import com.mopub.mobileads.test.support.TestMraidViewFactory;
+
 import org.fest.assertions.api.ANDROID;
 import org.junit.Before;
 import org.junit.Test;
@@ -49,16 +57,21 @@ import org.mockito.ArgumentCaptor;
 import org.robolectric.Robolectric;
 import org.robolectric.shadows.ShadowLocalBroadcastManager;
 
+import static com.mopub.mobileads.AdFetcher.AD_CONFIGURATION_KEY;
 import static com.mopub.mobileads.AdFetcher.HTML_RESPONSE_BODY_KEY;
-import static com.mopub.mobileads.BaseInterstitialActivity.ACTION_INTERSTITIAL_DISMISS;
-import static com.mopub.mobileads.BaseInterstitialActivity.HTML_INTERSTITIAL_INTENT_FILTER;
+import static com.mopub.mobileads.EventForwardingBroadcastReceiver.ACTION_INTERSTITIAL_CLICK;
+import static com.mopub.mobileads.EventForwardingBroadcastReceiver.ACTION_INTERSTITIAL_DISMISS;
+import static com.mopub.mobileads.EventForwardingBroadcastReceiver.getHtmlInterstitialIntentFilter;
+import static com.mopub.mobileads.EventForwardingBroadcastReceiverTest.getIntentForActionAndIdentifier;
 import static com.mopub.mobileads.MraidView.MraidListener;
 import static org.fest.assertions.api.Assertions.assertThat;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.stub;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.withSettings;
 import static org.robolectric.Robolectric.shadowOf;
 
 @RunWith(SdkTestRunner.class)
@@ -66,10 +79,12 @@ public class MraidActivityTest extends BaseInterstitialActivityTest {
 
     private MraidView mraidView;
     private CustomEventInterstitial.CustomEventInterstitialListener customEventInterstitialListener;
+    private Activity context;
 
     @Before
     public void setUp() throws Exception {
         super.setup();
+        context = new Activity();
         Intent mraidActivityIntent = createMraidActivityIntent(EXPECTED_SOURCE);
         mraidView = TestMraidViewFactory.getSingletonMock();
         resetMockedView(mraidView);
@@ -143,6 +158,13 @@ public class MraidActivityTest extends BaseInterstitialActivityTest {
     }
 
     @Test
+    public void onCreate_shouldSetContentView() throws Exception {
+        subject.onCreate(null);
+
+        assertThat(getContentView(subject).getChildCount()).isEqualTo(3);
+    }
+
+    @Test
     public void onCreate_shouldSetupAnMraidView() throws Exception {
         subject.onCreate(null);
 
@@ -151,6 +173,21 @@ public class MraidActivityTest extends BaseInterstitialActivityTest {
         verify(mraidView).setOnCloseButtonStateChange(any(MraidView.OnCloseButtonStateChangeListener.class));
 
         verify(mraidView).loadHtmlData(EXPECTED_SOURCE);
+    }
+
+    @Test
+    public void onCreate_shouldAddCloseEventRegion() throws Exception {
+        subject.onCreate(null);
+
+        final Button closeEventRegion = (Button) getContentView(subject).getChildAt(2);
+        assertThat(closeEventRegion.getVisibility()).isEqualTo(View.VISIBLE);
+        assertThat(shadowOf(closeEventRegion).getBackgroundColor()).isEqualTo(Color.TRANSPARENT);
+        assertThat(Dips.pixelsToIntDips((float) closeEventRegion.getLayoutParams().width, context)).isEqualTo(50);
+        assertThat(Dips.pixelsToIntDips((float) closeEventRegion.getLayoutParams().height, context)).isEqualTo(50);
+        assertThat(((RelativeLayout.LayoutParams)closeEventRegion.getLayoutParams()).getRules()[RelativeLayout.ALIGN_PARENT_TOP])
+                .isEqualTo(RelativeLayout.TRUE);
+        assertThat(((RelativeLayout.LayoutParams)closeEventRegion.getLayoutParams()).getRules()[RelativeLayout.ALIGN_PARENT_RIGHT])
+                .isEqualTo(RelativeLayout.TRUE);
     }
 
     @Test
@@ -174,14 +211,23 @@ public class MraidActivityTest extends BaseInterstitialActivityTest {
     }
 
     @Test
+    public void closeEventRegion_shouldFinishActivityWhenClicked() throws Exception {
+        subject.onCreate(null);
+
+        final Button closeEventRegion = (Button) getContentView(subject).getChildAt(2);
+        assertThat(closeEventRegion.performClick()).isTrue();
+        assertThat(subject.isFinishing()).isTrue();
+    }
+
+    @Test
     public void onDestroy_DestroyMraidView() throws Exception {
-        Intent expectedIntent = new Intent(ACTION_INTERSTITIAL_DISMISS);
-        ShadowLocalBroadcastManager.getInstance(subject).registerReceiver(broadcastReceiver, HTML_INTERSTITIAL_INTENT_FILTER);
+        Intent expectedIntent = getIntentForActionAndIdentifier(ACTION_INTERSTITIAL_DISMISS, subject.getBroadcastIdentifier());
+        ShadowLocalBroadcastManager.getInstance(subject).registerReceiver(broadcastReceiver, getHtmlInterstitialIntentFilter());
 
         subject.onCreate(null);
         subject.onDestroy();
 
-        verify(broadcastReceiver).onReceive(eq(subject), eq(expectedIntent));
+        verify(broadcastReceiver).onReceive(any(Context.class), eq(expectedIntent));
         verify(mraidView).destroy();
         assertThat(getContentView(subject).getChildCount()).isEqualTo(0);
     }
@@ -232,6 +278,26 @@ public class MraidActivityTest extends BaseInterstitialActivityTest {
         baseMraidListener.onClose(null, null);
 
         verify(mraidView).loadUrl(eq("javascript:webviewDidClose();"));
+    }
+
+    @Test
+    public void baseMraidListenerOnOpen_shouldBroadcastClickEvent() throws Exception {
+        Intent expectedIntent = getIntentForActionAndIdentifier(ACTION_INTERSTITIAL_CLICK, testBroadcastIdentifier);
+        ShadowLocalBroadcastManager.getInstance(subject).registerReceiver(broadcastReceiver, getHtmlInterstitialIntentFilter());
+
+        subject.onCreate(null);
+        resetMockedView(mraidView);
+
+        ArgumentCaptor<MraidListener> captor = ArgumentCaptor.forClass(MraidListener.class);
+        View actualAdView = subject.getAdView();
+
+        assertThat(actualAdView).isSameAs(mraidView);
+        verify(mraidView).setMraidListener(captor.capture());
+
+        MraidListener baseMraidListener = captor.getValue();
+        baseMraidListener.onOpen(null);
+
+        verify(broadcastReceiver).onReceive(any(Context.class), eq(expectedIntent));
     }
 
     @Test
@@ -290,6 +356,11 @@ public class MraidActivityTest extends BaseInterstitialActivityTest {
         Intent mraidActivityIntent = new Intent();
         mraidActivityIntent.setComponent(new ComponentName("", ""));
         mraidActivityIntent.putExtra(HTML_RESPONSE_BODY_KEY, expectedSource);
+
+        adConfiguration = mock(AdConfiguration.class, withSettings().serializable());
+        stub(adConfiguration.getBroadcastIdentifier()).toReturn(testBroadcastIdentifier);
+        mraidActivityIntent.putExtra(AD_CONFIGURATION_KEY, adConfiguration);
+
         return mraidActivityIntent;
     }
 }

@@ -38,9 +38,10 @@ import android.graphics.Bitmap;
 import android.net.Uri;
 import android.util.Log;
 import android.view.View;
+
+import com.mopub.common.util.DateAndTime;
+import com.mopub.common.util.Streams;
 import com.mopub.mobileads.util.Base64;
-import com.mopub.mobileads.util.DateAndTime;
-import com.mopub.mobileads.util.Streams;
 
 import java.io.*;
 import java.text.SimpleDateFormat;
@@ -95,6 +96,7 @@ public class AdAlertReporter {
         Intent chooserIntent = Intent.createChooser(mEmailIntent, "Send Email...");
         chooserIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         mContext.startActivity(chooserIntent);
+
     }
 
     private void initEmailIntent() {

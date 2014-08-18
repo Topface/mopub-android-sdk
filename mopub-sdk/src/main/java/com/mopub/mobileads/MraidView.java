@@ -42,9 +42,11 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+
+import com.mopub.common.util.Strings;
 import com.mopub.mobileads.factories.HttpClientFactory;
 import com.mopub.mobileads.resource.MraidJavascript;
-import com.mopub.mobileads.util.Strings;
+
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
@@ -63,7 +65,7 @@ import static com.mopub.mobileads.ViewGestureDetector.UserClickListener;
 public class MraidView extends BaseWebView implements UserClickListener {
     private static final String LOGTAG = "MraidView";
     
-    private MraidBrowserController mBrowserController;
+    private MoPubBrowserController mBrowserController;
     private MraidDisplayController mDisplayController;
     
     private WebViewClient mWebViewClient;
@@ -78,7 +80,6 @@ public class MraidView extends BaseWebView implements UserClickListener {
     static class MraidListenerInfo {
         private MraidListener mMraidListener;
         private OnCloseButtonStateChangeListener mOnCloseButtonListener;
-        private OnOpenListener mOnOpenListener;
     }
     private MraidListenerInfo mListenerInfo;
 
@@ -164,7 +165,7 @@ public class MraidView extends BaseWebView implements UserClickListener {
         
         getSettings().setJavaScriptEnabled(true);
         
-        mBrowserController = new MraidBrowserController(this);
+        mBrowserController = new MoPubBrowserController(this);
         mDisplayController = new MraidDisplayController(this, expStyle, buttonStyle);
         
         mWebViewClient = new MraidWebViewClient();
@@ -245,7 +246,7 @@ public class MraidView extends BaseWebView implements UserClickListener {
 
     // Controllers /////////////////////////////////////////////////////////////////////////////////
     
-    protected MraidBrowserController getBrowserController() {
+    protected MoPubBrowserController getBrowserController() {
         return mBrowserController;
     }
     
@@ -269,14 +270,6 @@ public class MraidView extends BaseWebView implements UserClickListener {
     
     public OnCloseButtonStateChangeListener getOnCloseButtonStateChangeListener() {
         return mListenerInfo.mOnCloseButtonListener;
-    }
-    
-    public void setOnOpenListener(OnOpenListener listener) {
-        mListenerInfo.mOnOpenListener = listener;
-    }
-    
-    public OnOpenListener getOnOpenListener() {
-        return mListenerInfo.mOnOpenListener;
     }
     
     // JavaScript injection ////////////////////////////////////////////////////////////////////////
@@ -401,6 +394,7 @@ public class MraidView extends BaseWebView implements UserClickListener {
         public void onReady(MraidView view);
         public void onFailure(MraidView view);
         public void onExpand(MraidView view);
+        public void onOpen(MraidView view);
         public void onClose(MraidView view, ViewState newViewState);
     }
 
@@ -408,15 +402,12 @@ public class MraidView extends BaseWebView implements UserClickListener {
         @Override public void onReady(MraidView view) { }
         @Override public void onFailure(MraidView view) { }
         @Override public void onExpand(MraidView view) { }
+        @Override public void onOpen(MraidView view) { }
         @Override public void onClose(MraidView view, ViewState newViewState) { }
     }
 
     public interface OnCloseButtonStateChangeListener {
         public void onCloseButtonStateChange(MraidView view, boolean enabled);
-    }
-    
-    public interface OnOpenListener {
-        public void onOpen(MraidView view);
     }
 
     public boolean getIsVisible() {

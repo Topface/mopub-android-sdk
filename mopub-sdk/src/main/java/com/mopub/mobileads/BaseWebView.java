@@ -33,15 +33,16 @@
 package com.mopub.mobileads;
 
 import android.content.Context;
-import android.util.Log;
+import android.webkit.WebSettings;
 import android.webkit.WebView;
-import com.mopub.mobileads.util.VersionCode;
-import com.mopub.mobileads.util.Views;
+
+import com.mopub.common.util.VersionCode;
+import com.mopub.common.util.Views;
 import com.mopub.mobileads.util.WebViews;
 
-import java.lang.reflect.Method;
-
 public class BaseWebView extends WebView {
+    protected boolean mIsDestroyed;
+
     public BaseWebView(Context context) {
         /*
          * Important: don't allow any WebView subclass to be instantiated using
@@ -59,33 +60,23 @@ public class BaseWebView extends WebView {
             return;
         }
 
-        if (VersionCode.currentApiLevel().isBelow(VersionCode.FROYO)) {
-            // Note: this is needed to compile against api level 18.
-            try {
-                Method method = Class.forName("android.webkit.WebSettings").getDeclaredMethod("setPluginsEnabled", boolean.class);
-                method.invoke(getSettings(), enabled);
-            } catch (Exception e) {
-                Log.d("MoPub", "Unable to " + (enabled ? "enable" : "disable") + "WebSettings plugins for BaseWebView.");
-            }
+        if (enabled) {
+            getSettings().setPluginState(WebSettings.PluginState.ON);
         } else {
-
-            try {
-                Class<Enum> pluginStateClass = (Class<Enum>) Class.forName("android.webkit.WebSettings$PluginState");
-
-                Class<?>[] parameters = {pluginStateClass};
-                Method method = getSettings().getClass().getDeclaredMethod("setPluginState", parameters);
-
-                Object pluginState = Enum.valueOf(pluginStateClass, enabled ? "ON" : "OFF");
-                method.invoke(getSettings(), pluginState);
-            } catch (Exception e) {
-                Log.d("MoPub", "Unable to modify WebView plugin state.");
-            }
+            getSettings().setPluginState(WebSettings.PluginState.OFF);
         }
     }
 
     @Override
     public void destroy() {
+        mIsDestroyed = true;
+
         Views.removeFromParent(this);
         super.destroy();
+    }
+
+    @Deprecated // for testing
+    void setIsDestroyed(boolean isDestroyed) {
+        mIsDestroyed = isDestroyed;
     }
 }
